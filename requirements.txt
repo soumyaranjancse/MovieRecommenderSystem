@@ -2,4 +2,3 @@ streamlit
 pandas
 requests
 pickle-mixin
-gdown
