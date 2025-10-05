@@ -23,13 +23,30 @@ def recommend(movie):
     return recommended_movies,recommended_movies_posters
 
 
-similarity = pickle.load(open('similarity.pkl','rb'))
-movies_dict=pickle.load(open('movie_dict.pkl','rb'))
+import requests
+import pickle
+import io
+
+# Google Drive file links
+similarity_url = "https://drive.google.com/uc?id=1TkT1W6nFMPykhiWJO59BtzAHol7me2XZ"
+movies_dict_url = "https://drive.google.com/uc?id=1Cq0JDbuDtILFBnKSkq39UmK1PqvpX-n9"
+
+def load_pickle_from_url(url):
+    response = requests.get(url)
+    return pickle.load(io.BytesIO(response.content))
+
+similarity = load_pickle_from_url(similarity_url)
+movies_dict = load_pickle_from_url(movies_dict_url)
+movies = pd.DataFrame(movies_dict)
+
+
+
+
 movies=pd.DataFrame(movies_dict)
 
 st.title("Movie Recommender system")
 selected_movie_name=st.selectbox(
-    'SEARCH HERE 🔎',
+    'SEARCH HERE 🔎.',
     movies['title'].values)
 
 
