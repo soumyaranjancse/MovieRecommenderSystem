@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 import pickle
 import requests
-import gdown  # 👈 to download large files from Google Drive
+import io
 
 # ------------------- Fetch Poster Function -------------------
 def fetch_poster(movie_id):
@@ -13,30 +13,37 @@ def fetch_poster(movie_id):
     return "https://image.tmdb.org/t/p/w500/" + data['poster_path']
 
 
-# ------------------- Load Pickle Files from Google Drive -------------------
-# Replace with your actual Google Drive File IDs
-similarity_id = "1TkT1W6nFMPykhiWJO59BtzAHol7me2XZ"   # ✅ your similarity.pkl file ID
-movies_dict_id = "1Cq0JDbuDtILFBnKSkq39UmK1PqvpX-n9"   # ✅ your movie_dict.pkl file ID
+# ------------------- Load Pickle Files from Hugging Face -------------------
+# Permanent links (hosted on Hugging Face)
+similarity_url = "https://huggingface.co/datasets/Soumyaranjannn/movie_recommender_files/resolve/main/similarity.pkl"
+movies_dict_url = "https://huggingface.co/datasets/Soumyaranjannn/movie_recommender_files/resolve/main/movie_dict.pkl"
 
-# Download the files using gdown
-gdown.download(f"https://drive.google.com/uc?id={similarity_id}", "similarity.pkl", quiet=False)
-gdown.download(f"https://drive.google.com/uc?id={movies_dict_id}", "movie_dict.pkl", quiet=False)
+# Cache the data so it’s downloaded only once
+@st.cache_data(show_spinner=False)
+def load_data():
+    def load_pickle_from_url(url):
+        response = requests.get(url)
+        response.raise_for_status()  # ensures proper error if link fails
+        return pickle.load(io.BytesIO(response.content))
 
-# Load pickle data
-with open("similarity.pkl", "rb") as f:
-    similarity = pickle.load(f)
+    similarity = load_pickle_from_url(similarity_url)
+    movies_dict = load_pickle_from_url(movies_dict_url)
+    movies = pd.DataFrame(movies_dict)
+    return similarity, movies
 
-with open("movie_dict.pkl", "rb") as f:
-    movies_dict = pickle.load(f)
 
-movies = pd.DataFrame(movies_dict)
+# ------------------- Show Loading Spinner -------------------
+with st.spinner("Loading data... Please wait ⏳"):
+    similarity, movies = load_data()
 
 
 # ------------------- Recommendation Function -------------------
 def recommend(movie):
     movie_index = movies[movies['title'] == movie].index[0]
     distances = similarity[movie_index]
-    movies_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
+    movies_list = sorted(
+        list(enumerate(distances)), reverse=True, key=lambda x: x[1]
+    )[1:6]
 
     recommended_movies = []
     recommended_posters = []
